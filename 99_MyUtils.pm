@@ -1,6 +1,6 @@
 sub 
 NMA_send($$@){
-#                                                                     2013V0.71   #
+#                                                                     2013V0.72   #
 
 ###################################################################################
 # Funktion, um NotifyMyAndroid leichter zu senden                                 #
@@ -59,8 +59,9 @@ if (!defined $$usr_ListHash{$user})
         Log 0, ("NMA_send: User $user not found\n");
 } else {
     ## Und ab dafür Richtung Cell-Phone und ggf. ins Logfile ###
-    my $url = "http://www.notifymyandroid.com/publicapi/notify";
-    my $put = "apikey=".$apikey."&application=".$application."&event=".$subject."&description=".$message."&priority=".$priority;
+    $useSSL = 0 ? my $protocol = "http:" : my $protocol = "https:";
+	  my $url = "$protocol//www.notifymyandroid.com/publicapi/notify";
+    my $put = "apikey=$apikey&application=$application&event=$subject&description=$message&priority=$priority";
     fhem (CustomGetFileFromURL(0,$url,4,$put,$FB));
     if ($Log == 1) {Log 3, ("Der Benutzer ".$user." erhielt die Benachrichtigung: ".$subject."; ".$message)}
     }
