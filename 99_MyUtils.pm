@@ -1,6 +1,6 @@
 sub 
 NMA_send($$@){
-#                                                                    2013V0.6     #
+#                                                                     2013V0.71   #
 
 ###################################################################################
 # Funktion, um NotifyMyAndroid leichter zu senden                                 #
@@ -11,26 +11,30 @@ NMA_send($$@){
 ###################### Variablen aus Funktionsaufruf bilden #######################
 my ($subject, $message, $priority, $user, $application, $Log) = @_;
 
-$application = "FHEM" if(!$application); # Ohne Absender wird "FHEM" gesendet.
-
 ################################# EINSTELLUNGEN ###################################
-# User und dazugehörige NotifyMyAndroid-ID erfassen, soll die Funktion geloggt    #
-# werden und läuft das Script auf einer FritzBox?                                 #
-###################################################################################
 
-my $FB = 1;         # 0=keine FRITZ!Box, 1=fhem läuft auf FRITZ!Box
-$Log = 0 if(!$Log); # 0=kein Eintrag im Logfile, 1=Eintrag im Logfile (kann über Funktionsaufruf separat getriggert werden)
+$priority = 0 if(!$priority);               # Welche Priorität soll genommen werden, wenn keine übergeben wird?
+                                            ########### Prioritäten: ############
+                                            # -2 = Very Low    (sehr niedrig)   #
+                                            # -1 = Moderate    (mittelmäßig)    #
+                                            #  0 = Normal      (Normal)         #
+                                            #  1 = High        (Hoch)           #
+                                            #  2 = Emergency   (Notfall)        #
+                                            #####################################
+$application = "FHEM" if(!$application);    # Welcher Absender soll genommen werden, wenn Absender fehlt?
+my $FB = 1;                                 # 0=keine FRITZ!Box, 1=fhem läuft auf FRITZ!Box
+my $useSSL = 0;                             # 0=ohne SSL, 1=mit SSL (einige Geräte unterstützen kein SSL)
+$Log = 1 if(!$Log);                         # 0=kein Eintrag im Logfile, 1=Eintrag im Logfile (kann über Funktionsaufruf separat getriggert werden)
 
 my @usr_List = 
-( "User:1234567890abcdef1234567890abcdef1234567890abcdef"
+( "Name:1234567890abcdef1234567890abcdef1234567890abcdef"
 );
+
 # Listenformat: 
 #( "Name1:API-Key1",
 #  "Name2:API-Key2"
 #);
 # nach dem letzten Listeneintrag KEIN Komma! Sonst immer!
-
-$user = split(/:/, @usr_List) if(!$user); # setzt den ersten User der Liste, wenn kein User übergeben wurde.
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!! ES GEHEN NUR API-KEYS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
@@ -39,17 +43,10 @@ $user = split(/:/, @usr_List) if(!$user); # setzt den ersten User der Liste, wen
 # "My Account" unter "Manage my API keys" einen API-Key erstellen.                #
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 
-## Prioritäten: ##
-# -2 = Very Low  #
-# -1 = Moderate  #
-#  0 = Normal    #
-#  1 = High      #
-#  2 = Emergency #
-##################
-
-$priority = 0 if(!$priority); # Ohne Angabe wird "Normal" angenommen.
+($user,my @dummy) = split(/:/, $usr_List[0]) if(!$user);    # setzt den ersten User der Liste, wenn kein User übergeben wurde.
 
 ############# Benutzer suchen, Daten splitten, Ausgaben vorbereiten ###############
+
 my $usr_ListHash = {}; 
 foreach(@usr_List)
 { 
@@ -61,10 +58,10 @@ if (!defined $$usr_ListHash{$user})
 {
         Log 0, ("NMA_send: User $user not found\n");
 } else {
-	## Und ab dafür Richtung Cell-Phone und ggf. ins Logfile ###
-	my $url = "http://www.notifymyandroid.com/publicapi/notify";
-	my $put = "apikey=".$apikey."&application=".$application."&event=".$subject."&description=".$message."&priority=".$priority;
-	fhem (CustomGetFileFromURL(0,$url,4,$put,$FB));
-	if ($Log == 1) {Log 3, ("Der Benutzer ".$user." erhielt die Benachrichtigung: ".$subject."; ".$message)}
-	}
+    ## Und ab dafür Richtung Cell-Phone und ggf. ins Logfile ###
+    my $url = "http://www.notifymyandroid.com/publicapi/notify";
+    my $put = "apikey=".$apikey."&application=".$application."&event=".$subject."&description=".$message."&priority=".$priority;
+    fhem (CustomGetFileFromURL(0,$url,4,$put,$FB));
+    if ($Log == 1) {Log 3, ("Der Benutzer ".$user." erhielt die Benachrichtigung: ".$subject."; ".$message)}
+    }
 }
