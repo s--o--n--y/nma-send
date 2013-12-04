@@ -74,7 +74,7 @@ sub NMA_send($@){
 		my $url = $protocol."//www.notifymyandroid.com/publicapi/notify";
 		my $put = "?apikey=".$apikey."&application=".$attr{$name}{applicationName}."&event=".$subject."&description=".$message."&priority=".$priority;
 		my $success=1;
-		if (...) {
+		if ($attr{$name}{useHTTPUtils}==1) {
 			fhem(CustomGetFileFromURL(0,$url,4,$put,$useFB));
 		} else {
 			my ($userAgent, $request, $response, $requestURL);
