@@ -1,6 +1,5 @@
 sub 
 NMA_send($$@){
-#                                                                     2013V0.73   #
 
 ###################################################################################
 # Funktion, um NotifyMyAndroid leichter zu senden                                 #
@@ -25,6 +24,7 @@ $application = "FHEM" if(!$application);    # Welcher Absender soll genommen wer
 my $FB = 1;                                 # 0=keine FRITZ!Box, 1=fhem läuft auf FRITZ!Box
 my $useSSL = 0;                             # 0=ohne SSL, 1=mit SSL (einige Geräte unterstützen kein SSL)
 $Log = 1 if(!$Log);                         # 0=kein Eintrag im Logfile, 1=Eintrag im Logfile (kann über Funktionsaufruf separat getriggert werden)
+my $useHTTPUtils=1;                         # 1=FHEM-Funktion aus HTTPUtils.pm nutzen. 0=Bei Problemen können die HTTPUtils umgangen werden.
 
 my @usr_List = 
 ( "Name:1234567890abcdef1234567890abcdef1234567890abcdef"
@@ -65,9 +65,23 @@ if (!defined $$usr_ListHash{$user})
 	  } else { 
 	  $protocol = "https:";
 	  }
-	  my $url = "$protocol//www.notifymyandroid.com/publicapi/notify";
-    my $put = "apikey=$apikey&application=$application&event=$subject&description=$message&priority=$priority";
-    fhem (CustomGetFileFromURL(0,$url,4,$put,$FB));
-    if ($Log == 1) {Log 3, ("Der Benutzer ".$user." erhielt die Benachrichtigung: ".$subject."; ".$message)}
-    }
+	if ($useHTTPUtils == 1) {
+		my $url = "$protocol//www.notifymyandroid.com/publicapi/notify";
+		my $put = "apikey=$apikey&application=$application&event=$subject&description=$message&priority=$priority";
+		fhem (CustomGetFileFromURL(0,$url,4,$put,$FB));
+		if ($Log == 1) {Log 3, ("Der Benutzer ".$user." erhielt die Benachrichtigung: ".$subject."; ".$message)}
+		}
+	} else {
+		my ($userAgent, $request, $response, $requestURL);
+		$userAgent = LWP::UserAgent->new;
+		$userAgent->agent("NMAScript/1.0");
+		$userAgent->env_proxy();                
+		$requestURL = $url.$put;
+		$request = HTTP::Request->new(GET => $requestURL);
+		$response = $userAgent->request($request);
+		if (!$response->is_success) {
+			Log 3, ("ERROR: Notification not posted: " . $response->content . "\n");
+			success=0;	
+		}               		
+	}
 }
