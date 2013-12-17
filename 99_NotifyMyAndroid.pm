@@ -86,7 +86,7 @@ sub NMA_send($@){
 			$response = $userAgent->request($request);
 			if (!$response->is_success) {
 				Log 3, ("ERROR: Notification not posted: " . $response->content . "\n");
-				success=0;	
+				$success=0;	
 			}               		
 		}
 			
