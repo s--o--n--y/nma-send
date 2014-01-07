@@ -67,7 +67,35 @@ if (!defined $$usr_ListHash{$user})
 	  }
 	  my $url = "$protocol//www.notifymyandroid.com/publicapi/notify";
     my $put = "apikey=$apikey&application=$application&event=$subject&description=$message&priority=$priority";
-    fhem (CustomGetFileFromURL(0,$url,4,$put,$FB));
-    if ($Log == 1) {Log 3, ("Der Benutzer ".$user." erhielt die Benachrichtigung: ".$subject."; ".$message)}
-    }
+	my $response = CustomGetFileFromURL(0,$url,4,$put,$FB);
+	  foreach my $l (split("<",$response)) {
+          #Debug "DEBUG RESPONSE: line=\"$l\"";
+          next if($l eq "");                   # skip empty lines
+          $l =~ s/(\/|\?)?>$//;                # strip off /> and >
+          my ($tag,$value)= split(" ", $l, 2); # split tag data=..... at the first blank
+          next if(!defined($tag));
+  
+          ### Successfully send
+          if ($tag eq "success" ) {
+			my $code = (($value =~/code="([0-9]*?)".*/) ? $1 : undef);
+			my $remaining = (($value =~/remaining="([0-9]*?)".*/) ? $1 : undef);
+			my $reset = (($value =~/resettimer="([0-9]*?)".*/) ? $1 : undef);
+		    if ($Log == 1) {Log 3, ("NMA_send: The User ".$user." got the following message: ".$subject."; ".$message."   INFO: The provided API-Key have ".$remaining." Notifications left in the next ".$reset." minutes.")}
+
+          }
+        
+          ### Error while sending
+          if ($tag eq "error" ) {
+        Debug "DEBUG RESPONSE: line=\"$l\"";
+			my $code = (($value =~/code="([0-9]*?)".*/) ? $1 : undef);
+			my $reset = (($value =~/resettimer="([0-9]*?)".*/) ? $1 : undef);
+			my $errortext = undef;
+			$errortext = substr($l, 18) if ($code != 402);
+			Debug "Errortext: ".$errortext;
+			my $extrainfo = ". Your Limit for this Time-Period is reached. Try sending again in ".$reset." minutes." if ($code == 402);
+			my $extrainfo = ". The NotifyMyAndroid-Server provided this information with the given error: ".$errortext if ($code != 402);
+			if ($Log == 1) {Log 3, ("NMA_send: Error #".$code." while sending ".$subject."; ".$message." to User ".$user.$extrainfo)}
+          }
+	}
+	}
 }
