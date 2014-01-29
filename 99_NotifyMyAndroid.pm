@@ -6,6 +6,7 @@
 package main;
 use strict;
 use LWP::UserAgent;
+use URI::Escape;
 use warnings;
 use POSIX;
 
@@ -62,7 +63,8 @@ sub NMA_send($@){
 		my $apikey = $hash->{apikey};
 		my $name = $hash->{NAME};	
 		my $useSSL = $attr{$name}{useSSL};
-		my $useFB  = $attr{$name}{isFB};
+		my $useFB  = $attr{$name}{useFB};
+		my $useHTTPUtils = $attr{$name}{useHTTPUtils};
 		my $appname = $attr{$name}{applicationName};
 		
 		my $protocol;
@@ -72,13 +74,11 @@ sub NMA_send($@){
 			$protocol = "http:";
 		}
 		my $url = $protocol."//www.notifymyandroid.com/publicapi/notify";
-		my $put = "apikey=".$apikey."&application=".$attr{$name}{applicationName}."&event=".$subject."&description=".$message."&priority=".$priority;
-		Log 3, ("Url: ".$url." Data: ".$put." useFB".$useFB);
+		my $put = "?apikey=".$apikey."&application=".$attr{$name}{applicationName}."&event=".$subject."&description=".$message."&priority=".$priority;
+		Log 3, ("[nma] Using ".$put."\n");
 		my $success=1;
-		if ($attr{$name}{useHTTPUtils}==1) {
-			my $response = CustomGetFileFromURL(0,$url,4,$put,$useFB);
-			return 0 if( ! defined $response || $response eq "");
-			Log 3, ($response);	
+		if ($useHTTPUtils==0) {
+			fhem(CustomGetFileFromURL(0,$url,4,$put,$useFB));
 		} else {
 			my ($userAgent, $request, $response, $requestURL);
 			$userAgent = LWP::UserAgent->new;
@@ -92,6 +92,7 @@ sub NMA_send($@){
 				$success=0;	
 			}               		
 		}
+			
 		if ($success==1) {
 			Log 3, ("[".$name."] Die Benachrichtigung wurde versendet: ".$subject."; ".$message);
 			$hash->{STATE} = "notification sent";
